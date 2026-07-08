@@ -43,3 +43,17 @@ Thumbs.db
 .nx/migrate-runs
 .claude/worktrees
 .claude/settings.local.json
+
+# Next.js
+.next
+out
+/.env
+
+.nx/polygraph
+/.env.local
+/.vscode/
+/.opencode/
+/.gemini/
+/.cursor/
+/.claude/
+/.agents/
