@@ -49,5 +49,13 @@ export function useApi() {
       fetchWithAuth(endpoint, {
         method: 'DELETE',
       }),
+    streamPost:(endpoint:string,data:unknown)=>
+      fetchWithAuth(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers:{
+          'Accept':'text/event-stream',
+        }
+      })
   };
 }

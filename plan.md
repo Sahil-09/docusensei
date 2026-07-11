@@ -578,19 +578,19 @@ const socket = io('http://localhost:3000', {
 ### Phase 1: Foundation (Week 1-2)
 
 #### 1.1 PostgreSQL + Prisma Setup
-- [ ] Install PostgreSQL locally
-- [ ] Install Prisma dependencies
+- [X] Install PostgreSQL locally
+- [x] Install Prisma dependencies
   ```bash
   cd apps/backend
   pnpm add prisma @prisma/client
   pnpm add -D prisma
   ```
-- [ ] Initialize Prisma
+- [x] Initialize Prisma
   ```bash
   npx prisma init
   ```
-- [ ] Configure `.env` with `DATABASE_URL`
-- [ ] Create complete Prisma schema
+- [x] Configure `.env` with `DATABASE_URL`
+- [x] Create complete Prisma schema
 - [ ] Generate Prisma client
   ```bash
   npx prisma generate
