@@ -1,7 +1,17 @@
 allowBuilds:
+  '@firebase/util': false
   '@parcel/watcher': false
+  '@prisma/engines': false
   '@swc/core': false
+  better-sqlite3: false
   less: false
   nx: false
+  prisma: false
+  protobufjs: false
   sharp: false
   unrs-resolver: false
+minimumReleaseAgeExclude:
+  - '@clerk/backend@3.11.2'
+  - '@clerk/nextjs@7.5.15'
+  - '@clerk/react@6.12.1'
+  - '@clerk/shared@4.25.1'
