@@ -15,7 +15,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const globalPrefix = 'v1/api';
+  const globalPrefix = 'api/v1';
   app.setGlobalPrefix(globalPrefix)
   const port = process.env.API_PORT || 3000;
   await app.listen(port);

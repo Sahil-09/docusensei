@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { expressHandler } from '@genkit-ai/express';
 import { bargainChefFlow } from './bargainChefFlow';
 import { genericFlow } from './genericFlow';
+import { ChatsService } from '../chats/chats.service';
 
 @Controller()
 export class GenkitController {
@@ -19,12 +20,11 @@ export class GenkitController {
   }
 
   @Post('genericFlow')
-  generic(
+   generic(
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
   ) {
-
-    return this.handleGeneric(req, res, next);
+    return this.handleGeneric(req, res, next,);
   }
 }
