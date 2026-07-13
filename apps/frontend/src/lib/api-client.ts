@@ -1,19 +1,19 @@
 'use client';
 
 import { useAuth, useUser } from '@clerk/nextjs';
+import { streamFlow } from 'genkit/beta/client';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4444/api/v1';
 
 export function useApi() {
   const { getToken } = useAuth();
 
-  const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
+  const fetchWithAuth = async (endpoint: string, options: any = {}) => {
     const token = await getToken({
 
     });
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
 
@@ -49,13 +49,21 @@ export function useApi() {
       fetchWithAuth(endpoint, {
         method: 'DELETE',
       }),
-    streamPost:(endpoint:string,data:unknown)=>
+    postFile: (endpoint: string, data: unknown) =>
       fetchWithAuth(endpoint, {
         method: 'POST',
-        body: JSON.stringify(data),
-        headers:{
-          'Accept':'text/event-stream',
-        }
-      })
+        body: data,
+      }),
+    patchFile: (endpoint: string, data: unknown) =>
+      fetchWithAuth(endpoint, {
+        method: 'PATCH',
+        body: data,
+      }),
+    streamAi: (endpoint: string, input: unknown) => {
+      return streamFlow({
+        url: `${API_BASE_URL}${endpoint}`,
+        input,
+      });
+    },
   };
 }
