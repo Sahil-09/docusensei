@@ -41,7 +41,6 @@ export class ClerkAuthGuard implements CanActivate {
         firstName: payload.firstName as string | undefined,
         lastName: payload.lastName as string | undefined,
       };
-      console.log(payload);
       return true;
     } catch (error) {
       throw new UnauthorizedException('Invalid token');

@@ -54,11 +54,16 @@ export function useApi() {
         method: 'POST',
         body: data,
       }),
-    streamAi:(endpoint: string, input: unknown) => {
+    patchFile: (endpoint: string, data: unknown) =>
+      fetchWithAuth(endpoint, {
+        method: 'PATCH',
+        body: data,
+      }),
+    streamAi: (endpoint: string, input: unknown) => {
       return streamFlow({
         url: `${API_BASE_URL}${endpoint}`,
         input,
       });
-    }
+    },
   };
 }

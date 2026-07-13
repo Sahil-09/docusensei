@@ -1,9 +1,10 @@
 // app/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { streamFlow } from 'genkit/beta/client';
 import { useApi } from '../lib/api-client';
+import { SideBar } from '../components/side-bar';
 
 // Define the shape of your expected completed JSON object
 interface Recipe {
@@ -19,7 +20,7 @@ interface Messages {
   content?: string;
 }
 
-const defaultChatId = 'cmri52b2d00004kekd1ccdkp2';
+const defaultChatId = 'cmrj4s9ea0000o8ek21xvvhiu';
 
 export default function ChatComponent() {
   const [input, setInput] = useState('');
@@ -29,7 +30,8 @@ export default function ChatComponent() {
   const [isUploadLoading, setIsUploadLoading] = useState(false);
   const [messages, setMessages] = useState<Messages[]>([]);
   const [files, setFiles] = useState<File[]>([]);
-  const { postFile, streamAi, get } = useApi();
+  const { postFile, streamAi, get, patchFile } = useApi();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Initialize with default chat ID
@@ -44,10 +46,9 @@ export default function ChatComponent() {
     setIsLoading(true);
 
     try {
-      // 1. Initialize the stream pointing to your Genkit backend route
       const responseStream = streamFlow({
-        url: 'http://localhost:4444/v1/api/genericFlow', // 👈 Update to your actual route
-        input, // 👈 Matches your Flow's input schema
+        url: 'http://localhost:4444/v1/api/genericFlow',
+        input,
       });
       // 2. Async iterate through chunks as Genkit sends them
       for await (const chunk of responseStream.stream) {
@@ -77,7 +78,7 @@ export default function ChatComponent() {
       ...prevMsg,
       {
         role: 'USER',
-        message: input,
+        content: input,
       },
     ]);
     let uploadedFiles = new FormData();
@@ -85,22 +86,19 @@ export default function ChatComponent() {
       uploadedFiles.append('files', el);
     });
     uploadedFiles.append('message', input);
+    uploadedFiles.append('chatId', defaultChatId);
     setIsUploadLoading(true);
     let resultFile;
-    try {
-      resultFile = await postFile('/chats', uploadedFiles);
-    } catch (e) {
-      console.log('File Upload Failed:', e);
-    } finally {
-      setIsUploadLoading(false);
-    }
     setIsLoading(true);
 
     try {
+      resultFile = await postFile('/chats', uploadedFiles);
+      setIsUploadLoading(false);
       // 1. Initialize the stream pointing to your Genkit backend route
       const responseStream = streamAi('/genericFlow', {
         message: input,
         chatId: resultFile.chatId,
+        inputMessageId: resultFile.messageId,
         role: 'ASSISTANT',
       });
       let i = 0;
@@ -120,7 +118,7 @@ export default function ChatComponent() {
           } else {
             setMessages((prevMsg) => {
               const newMsgs = [...prevMsg];
-              newMsgs[newMsgs.length - 1].content += chunk.text;
+              newMsgs[newMsgs.length - 1].content = chunk.text;
               return newMsgs;
             });
           }
@@ -129,6 +127,8 @@ export default function ChatComponent() {
     } catch (error) {
       console.error('Streaming failed:', error);
     } finally {
+      setInput('');
+      setIsUploadLoading(false);
       setIsLoading(false);
     }
   };
@@ -159,39 +159,12 @@ export default function ChatComponent() {
     );
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px' }}>
-      <form onSubmit={handleGenerate} style={{ display: 'flex', gap: '8px' }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask something..."
-          disabled={isLoading}
-          style={{
-            flexGrow: 1,
-            padding: '8px',
-            color: '#000000',
-            border: '2px solid #797979',
-            borderRadius: '2px',
-          }}
-        />
-        <input
-          type="file"
-          accept="application/pdf,application/json"
-          onChange={(e) => setFiles(Array.from(e.target.files || []))}
-        />
-        <button
-          type="submit"
-          disabled={isLoading}
-          style={{ padding: '8px 16px' }}
-        >
-          {isLoading ? 'Streaming...' : 'Send'}
-        </button>
-      </form>
-
-      {messages.length ? (
-        messages.map((el, index) => {
-          return (
+    <div>
+      <SideBar/>
+      <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px' }}>
+        {messages.length ? (
+          messages.map((el, index) => {
+            return (
             <div
               style={{
                 marginTop: '20px',
@@ -224,6 +197,39 @@ export default function ChatComponent() {
           'Output will appear here...'
         </div>
       )}
+      <form
+        onSubmit={handleGenerate}
+        style={{ display: 'flex', gap: '8px', marginTop: '8px' }}
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask something..."
+          disabled={isLoading}
+          style={{
+            flexGrow: 1,
+            padding: '8px',
+            color: '#000000',
+            border: '2px solid #797979',
+            borderRadius: '2px',
+          }}
+        />
+        <input
+          type="file"
+          accept="application/pdf,application/json"
+          onChange={(e) => setFiles(Array.from(e.target.files || []))}
+          ref={fileInputRef}
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          style={{ padding: '8px 16px' }}
+        >
+          {isLoading ? 'Streaming...' : 'Send'}
+        </button>
+      </form>
+    </div>
     </div>
   );
 }

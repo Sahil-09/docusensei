@@ -8,7 +8,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFiles,
-  UseGuards,
+  UseGuards, Query,
 } from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { CreateChatDto } from './dto/create-chat.dto';
@@ -27,19 +27,25 @@ export class ChatsController {
   create(
     @Body() createChatDto: CreateChatDto,
     @UploadedFiles() files: Express.Multer.File[],
-    @CurrentUser() currentUser: any
+    @CurrentUser() currentUser: any,
   ) {
     return this.chatsService.create(createChatDto, files, currentUser);
   }
 
   @Post('embeddingTest')
-  embeddingTest() {
-    return this.chatsService.embeddingTest();
+  embeddingTest(@Query('text') text: string) {
+    return this.chatsService.embeddingTest(text);
+  }
+
+  @Post('generateFromAi')
+  generateFromAi(@Query('text') text: string) {
+    return this.chatsService.generateFromAi(text);
   }
 
   @Get()
-  findAll() {
-    return this.chatsService.findAll();
+  @UseGuards(ClerkAuthGuard)
+  findAll(@CurrentUser() currentUser: any) {
+    return this.chatsService.findAll(currentUser);
   }
 
   @Get(':id')
@@ -48,8 +54,15 @@ export class ChatsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateChatDto: UpdateChatDto) {
-    return this.chatsService.update(id, updateChatDto);
+  @UseGuards(ClerkAuthGuard)
+  @UseInterceptors(FilesInterceptor('files', 10))
+  update(
+    @Param('id') id: string,
+    @Body() updateChatDto: UpdateChatDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser() currentUser: any,
+  ) {
+    return this.chatsService.update(id, updateChatDto, files, currentUser);
   }
 
   @Delete(':id')
