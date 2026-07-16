@@ -30,12 +30,8 @@ export class UtilService{
 
   async generateFromAi(text:string){
     const ai = genkit({
-      plugins: [
-        vertexAI({
-          location: 'global',
-        }),
-      ],
-      model: vertexAI.model('gemini-3.5-flash'),
+      plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
+      model: googleAI.model('gemini-3.5-flash'),
     });
     const response = await ai.generate(
       `Prepare a short title for the conversation, based on question user have asked, no any option just keep it short and direct title

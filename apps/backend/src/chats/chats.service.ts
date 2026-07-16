@@ -21,32 +21,34 @@ export class ChatsService {
     if (!userData) {
       throw new Error(`User with clerkId ${user.id} not found`);
     }
-    let title=''
-    if(!createChatDto.chatId){
-      title = await this.utilSer.generateFromAi(createChatDto.message)
+    let title = '';
+    if (!createChatDto.chatId) {
+      title = await this.utilSer.generateFromAi(createChatDto.message);
     }
-    const createChat = await this.prisma.chat.upsert({
-      where: { id: createChatDto.chatId },
-      create: { userId: userData.id, title },
-      update: { userId: userData.id },
-    });
+    let chatId = createChatDto.chatId
+    if (!createChatDto.chatId){
+      const createChat = await this.prisma.chat.create({
+        data: { userId: userData.id, title },
+      });
+      chatId = createChat.id;
+    }
     this.logger.log(
-      `Created chat with ID: ${createChat.id} for user: ${userData.id}`,
+      `Created chat with ID: ${chatId} for user: ${userData.id}`,
     );
     const createMessage = await this.prisma.message.create({
       data: {
-        chatId: createChat.id,
+        chatId: chatId,
         role: 'USER',
         content: createChatDto.message,
       },
     });
     this.logger.log(
-      `Created initial message with ID: ${createMessage.id} for chat: ${createChat.id}`,
+      `Created initial message with ID: ${createMessage.id} for chat: ${chatId}`,
     );
-    if (files.length) await this.updatedDoc(createChat.id, userData.id, files);
+    if (files.length) await this.updatedDoc(chatId, userData.id, files);
     return {
-      message: 'Created',
-      chatId: createChat.id,
+      message: createChatDto?.chatId ? 'Updated' :'Created',
+      chatId: chatId,
       messageId: createMessage.id,
     };
   }
@@ -73,12 +75,34 @@ export class ChatsService {
   }
 
   async findAll(user) {
-    const userData= await this.prisma.user.findUnique({where:{clerkId:user.id}})
-    return this.prisma.chat.findMany({ where: { userId: userData.id } });
+    const userData = await this.prisma.user.findUnique({
+      where: { clerkId: user.id },
+    });
+    return this.prisma.chat.findMany({
+      where: { userId: userData.id, deletedAt:null },
+      select: { title: true, id: true },
+      orderBy: { createdAt:'desc' }
+    });
   }
 
   findOne(id: string) {
-    return this.prisma.message.findMany({ where: { chatId: id } });
+    return this.prisma.chat.findUnique({
+      where: { id },
+      include: {
+        messages: {
+          select:{
+            role:true,
+            content:true,
+            tokenCount:true,
+          }
+        },
+        documents: {
+          select: {
+            fileName: true,
+          },
+        },
+      },
+    });
   }
 
   async update(chatId: string, updateChatDto: UpdateChatDto, files, user) {
@@ -129,7 +153,7 @@ export class ChatsService {
     );
   }
 
-  async generateFromAi(text){
-    return this.utilSer.generateFromAi(text)
+  async generateFromAi(text) {
+    return this.utilSer.generateFromAi(text);
   }
 }
