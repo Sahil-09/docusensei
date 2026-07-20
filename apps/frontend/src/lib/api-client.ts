@@ -25,13 +25,23 @@ export function useApi() {
       ...options,
       headers,
     });
-    console.log(response);
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
 
     return response.json();
   };
+
+  const streamWithAi = async (endpoint,input)=>{
+    const token = await getToken({});
+    return streamFlow({
+      url: `${API_BASE_URL}${endpoint}`,
+      input,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
 
   return {
     get: (endpoint: string) => fetchWithAuth(endpoint),
@@ -59,11 +69,8 @@ export function useApi() {
         method: 'PATCH',
         body: data,
       }),
-    streamAi: (endpoint: string, input: unknown) => {
-      return streamFlow({
-        url: `${API_BASE_URL}${endpoint}`,
-        input,
-      });
-    },
+    streamAi: (endpoint: string, input: unknown) =>{
+      return streamWithAi(endpoint, input);
+    }
   };
 }

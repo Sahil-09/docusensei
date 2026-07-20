@@ -18,10 +18,10 @@ async function extractTextFromPdf(buffer) {
 }
 
 const chunkingConfig = {
-  minLength: 1000,
-  maxLength: 2000,
+  minLength: 600,
+  maxLength: 1000,
   splitter: 'sentence',
-  overlap: 100,
+  overlap: 50,
   delimiters: '',
 } as any;
 
@@ -86,11 +86,9 @@ export const indexData = ai.defineFlow(
           console.log(
             `Created document chunk with ID: ${createDocChunk.id} for document: ${input.docId}`,
           );
-          const ai = genkit({
-            plugins: [vertexAI()],
-          });
+
           const embedded = await ai.embed({
-            embedder: vertexAI.embedder('text-embedding-004'),
+            embedder: googleAI.embedder('gemini-embedding-001'),
             content: el.text,
             options: {
               outputDimensionality: 384, // Reduce from 768 to 384                                                                                                                                                                                                         MCP
