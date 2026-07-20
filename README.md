@@ -1,96 +1,150 @@
-# Docusensei
+# DocuSensei
+![Project Banner](./Sahil-09-docusensei.svg)
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+DocuSensei is a full-stack, Multi-Source Knowledge Assistant (MSKA) designed to process user documents, build a vector-based knowledge base, and provide interactive, real-time AI-powered chat with streaming responses.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+The project is structured as an Nx monorepo with a Next.js frontend and a NestJS backend.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+---
 
-## Run tasks
+## Key Features
 
-To run tasks with Nx use:
+- **Full-Stack Authentication**: Secured by Clerk with custom JWT claims.
+- **Real-Time Streaming Chat**: WebSocket communication using Socket.io for streaming AI responses token-by-token.
+- **OCR Document Processing**: Extracts text from uploaded files (PDFs, images, etc.) using the Gemini Vision API.
+- **Knowledge Base with RAG**: Embeds processed document chunks and stores them in PostgreSQL using the pgvector extension for similarity search and context-rich AI generation.
+- **Custom User Profiles & Settings**: Supports light/dark themes and global user instructions (system prompts) to tailor AI responses.
 
-```sh
-npx nx <target> <project-name>
+---
+
+## Tech Stack
+
+### Frontend
+- **Framework**: Next.js (App Router) + React
+- **Styling**: TailwindCSS + Shadcn/UI
+- **Authentication**: Clerk React SDK
+- **Real-Time**: Socket.io Client
+- **API Fetching**: useApi custom hook (SWR / Fetch)
+
+### Backend
+- **Framework**: NestJS
+- **ORM**: Prisma
+- **Database**: PostgreSQL (with pgvector extension)
+- **Authentication**: Clerk JWT Verification
+- **Real-Time Gateway**: Socket.io Server
+- **AI Services**: Google Gemini API & Gemini Vision API
+- **Storage**: Local storage (development) or S3-compatible storage (production)
+
+---
+
+## Workspace Architecture
+
+DocuSensei uses an Nx monorepo. The codebase is organized as follows:
+
+```text
+apps/
+├── frontend/     # Next.js Application
+└── backend/      # NestJS API Server
 ```
 
-For example:
+The package manager used in this monorepo is **pnpm**.
 
-```sh
-npx nx build myproject
+---
+
+## Getting Started
+
+### Prerequisites
+
+1. Install **Node.js** (v18 or higher recommended).
+2. Install **pnpm** globally:
+   ```bash
+   npm install -g pnpm
+   ```
+3. Set up a **PostgreSQL** instance with the `pgvector` extension enabled.
+
+### Environment Setup
+
+Create the following environment files in their respective project directories:
+
+#### Frontend (`apps/frontend/.env.local`):
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+CLERK_SECRET_KEY=sk_test_xxxxx
+NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_WS_URL=ws://localhost:3000
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+#### Backend (`apps/backend/.env`):
+```env
+# Application
+NODE_ENV=development
+API_PORT=3000
+API_PREFIX=api/v1
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+# Database
+DATABASE_URL="postgresql://postgres:password@localhost:5432/docusensei?schema=public"
 
-## Add new projects
+# Clerk Authentication
+CLERK_SECRET_KEY=sk_test_xxxxx
+FRONTEND_URL=http://localhost:4200
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+# Gemini AI
+GEMINI_API_KEY=xxxxx
+GEMINI_MODEL=gemini-pro
+GEMINI_VISION_MODEL=gemini-pro-vision
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+# Storage
+STORAGE_TYPE=local
+
+# Embedding Model
+EMBEDDING_MODEL=text-embedding-004
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+---
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+## Run Commands
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+Run all command prefixes with `pnpm` to avoid executing global CLIs.
+
+### Development
+
+To start both the frontend and backend in parallel:
+```bash
+pnpm dev
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+To run individual applications:
+```bash
+# Start Next.js frontend (default: localhost:4200)
+pnpm nx dev frontend
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+# Start NestJS backend (default: localhost:3000)
+pnpm nx serve backend
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+### Production Build
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+To compile the applications for production:
+```bash
+pnpm nx build frontend
+pnpm nx build backend
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Testing & Validation
 
-## Install Nx Console
+To run tests:
+```bash
+# Run Frontend E2E tests
+pnpm nx e2e frontend-e2e
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+# Run Backend E2E tests
+pnpm nx e2e backend-e2e
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
 
-## Useful links
+## API & WebSocket Communication
 
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- **Rest API Prefix**: All NestJS endpoints are prefixed with `/api/v1` (e.g., `http://localhost:3000/api/v1/chats`).
+- **WebSocket Handshake**: Socket.io client connects using a Clerk JWT token inside the auth handshake.
+- **Real-Time Streaming**: Emits `send_message` from client to server and streams chunks back using `message_chunk` and `message_complete`.
