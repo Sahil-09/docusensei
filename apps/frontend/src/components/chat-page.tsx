@@ -322,14 +322,6 @@ function ChatPage() {
             <div className="max-w-2xl mx-auto">
               <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                throw new Error('Sentry Test Error');
-              }}
-            >
-              Break the world
-            </button>
           </div>
         </div>
       </main>
