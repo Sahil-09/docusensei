@@ -9,17 +9,20 @@ export function useSmoothScroll(containerRef: React.RefObject<HTMLElement | null
       if (!containerRef.current) return;
 
       const viewport = containerRef.current.querySelector('[data-radix-scroll-area-viewport]') || containerRef.current;
-
-      if (immediate) {
-        viewport.scrollTop = viewport.scrollHeight;
-        return;
+      const executeScroll = () => {
+        if (!viewport) return;
+        if (immediate) {
+          viewport.scrollTop = viewport.scrollHeight;
+          return;
+        } else {
+          gsap.to(viewport, {
+            scrollTop: viewport.scrollHeight,
+            duration: 0.5,
+            ease: 'power3.out',
+          });
+        }
       }
-
-      gsap.to(viewport, {
-        scrollTop: viewport.scrollHeight,
-        duration: 0.5,
-        ease: 'power3.out',
-      });
+      setTimeout(executeScroll, 100);
     },
     [containerRef]
   );

@@ -4,6 +4,16 @@
   "sourceRoot": "apps/backend/src",
   "projectType": "application",
   "targets": {
+    "docker-build": {
+      "dependsOn": ["prune"],
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "docker build -f apps/backend/Dockerfile -t docusensei-backend:latest ."
+        ],
+        "parallel": false
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {

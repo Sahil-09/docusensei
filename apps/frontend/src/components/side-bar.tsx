@@ -33,7 +33,7 @@ function SideBar() {
     if (!logoRef.current || !buttonRef.current) return;
 
     const items = Array.from(chatItemsRef.current.values());
-    
+
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
     tl.fromTo(logoRef.current, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4 })
@@ -72,7 +72,7 @@ function SideBar() {
     e.stopPropagation();
     const chat = chats.find(c => c.id === id);
     if (!chat) return;
-    
+
     const newTitle = prompt('Enter new title:', chat.title);
     if (newTitle && newTitle !== chat.title) {
       try {
@@ -144,18 +144,6 @@ function SideBar() {
                     hoveredChat === chat.id ? 'opacity-100' : 'opacity-0'
                   )}
                 >
-                  <button
-                    className="p-1.5 rounded-md hover:bg-background/80 transition-colors"
-                    onClick={(e) => handleRenameChat(e, chat.id)}
-                  >
-                    <Pencil className="h-3 w-3 text-muted-foreground/60" />
-                  </button>
-                  <button
-                    className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
-                    onClick={(e) => handleDeleteChat(e, chat.id)}
-                  >
-                    <Trash2 className="h-3 w-3 text-muted-foreground/60 hover:text-destructive" />
-                  </button>
                 </div>
               </div>
             ))

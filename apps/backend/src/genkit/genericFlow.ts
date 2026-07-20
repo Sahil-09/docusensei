@@ -26,11 +26,17 @@ const ai = genkit({
   ],
 });
 
-const outputSchema = z.object({ text: z.string() });
+const modelOutputSchema = z.object({ text: z.string() });
+
+const flowOutputSchema = z.object({
+  text: z.string(),
+  retrievedDocs: z.array(z.string()).optional(),
+});
 
 const querySchema = z.object({
   message: z.string(),
   chatId: z.string(),
+  isEval: z.boolean().default(false)
 });
 
 const sqlRetriever = ai.defineRetriever(
@@ -46,14 +52,16 @@ const sqlRetriever = ai.defineRetriever(
     if (docIds.length === 0) {
       return { documents: [] };
     }
-    const messages = await prisma.message.findMany({
+    const messages = options.isEval ? await prisma.message.findMany({
       where: { chatId: options.chatId },
       orderBy: { createdAt: 'desc' },
-    });
-    const messageContents = messages
-      .filter((el) => el.role === 'USER')
-      .map((el) => el.content)
-      .join('\n');
+    }) : [];
+    const messageContents = messages.length
+      ? messages
+          .filter((el) => el.role === 'USER')
+          .map((el) => el.content)
+          .join('\n')
+      : options.message;
     const embedding = await ai.embed({
       embedder: googleAI.embedder('gemini-embedding-001'),
       content: messageContents,
@@ -74,18 +82,16 @@ const sqlRetriever = ai.defineRetriever(
        FROM "document_chunks"
        WHERE "documentId" IN (${docIds})
        ORDER BY embedding <=> '${embeddingString}'::vector
-       LIMIT 25
+       LIMIT 10
      `;
-    console.log(vectorQuery);
     const keywordQuery = `
        SELECT id, "documentId", content, metadata, "createdAt"
        FROM "document_chunks"
        WHERE "documentId" IN (${docIds})
          AND to_tsvector('english', content) @@ websearch_to_tsquery('english', '${sanitizedQuery}')
        ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', '${sanitizedQuery}')) DESC
-       LIMIT 25
+       LIMIT 10
      `;
-    console.log(keywordQuery);
     const [vectorDocs, keywordDocs] = await Promise.all([
       prisma.$queryRawUnsafe<RankedDocument[]>(vectorQuery),
       prisma.$queryRawUnsafe<RankedDocument[]>(keywordQuery),
@@ -93,7 +99,7 @@ const sqlRetriever = ai.defineRetriever(
     // Apply RRF to fuse results
     const fusedDocs = reciprocalRankFusion(vectorDocs, keywordDocs).slice(
       0,
-      15,
+      10,
     );
     function reciprocalRankFusion(
       vectorResults: RankedDocument[],
@@ -152,9 +158,10 @@ export const genericFlow = ai.defineFlow(
       message: z.string(),
       chatId: z.string(),
       inputMessageId: z.string(),
+      isEval: z.boolean().default(false),
     }),
-    outputSchema: outputSchema,
-    streamSchema: outputSchema,
+    outputSchema: flowOutputSchema,
+    streamSchema: modelOutputSchema,
   },
   async (input, { sendChunk }) => {
     const docs = await ai.retrieve({
@@ -164,16 +171,16 @@ export const genericFlow = ai.defineFlow(
         ...input,
       },
     });
-    const messages = await prisma.message.findMany({
+    const messages = !input.isEval ?await prisma.message.findMany({
       where: { chatId: input.chatId },
-    });
+    }) : [];
 
     const { stream, response } = ai.generateStream({
       model: targetModel,
       prompt: `You are acting as helpful assistant. Use only the context provided to answer the question. If you dont know, do not make up an answer.
-      If no context provided, ask user to upload document and check again.
+      If no context provided, ask user to upload document and check again. In answer dont say based on provided context. Just give answer
       Question: ${input.message}`,
-      output: { schema: outputSchema },
+      output: { schema: modelOutputSchema },
       docs,
       messages: messages.map((el) => {
         return {
@@ -187,22 +194,33 @@ export const genericFlow = ai.defineFlow(
     }
 
     const { output, usage } = await response;
-    console.log(usage.inputTokens,usage.outputTokens,input.inputMessageId);
+    console.log('inputToken:',usage.inputTokens,'outputToken:',usage.outputTokens,input.inputMessageId);
     if (!output) throw new Error('Failed to generate response');
-    await prisma.message.update({
-      where:{id: input.inputMessageId},
-      data: {
-        tokenCount: usage.inputTokens,
-      },
-    });
-    await prisma.message.create({
-      data: {
-        chatId: input.chatId,
-        role: 'ASSISTANT',
-        content: output.text,
-        tokenCount:usage.outputTokens
-      },
-    });
-    return output;
+    if(!input.isEval){
+      await prisma.message.update({
+        where: { id: input.inputMessageId },
+        data: {
+          tokenCount: usage.inputTokens,
+        },
+      });
+      await prisma.message.create({
+        data: {
+          chatId: input.chatId,
+          role: 'ASSISTANT',
+          content: output.text,
+          tokenCount: usage.outputTokens,
+        },
+      });
+    }
+    return {
+      text: output.text,
+      ...(input.isEval
+        ? {
+            retrievedDocs: Array.isArray(docs)
+              ? docs.map((d: any) => d.text)
+              : (docs as any).documents?.map((d: any) => d.text) || [],
+          }
+        : {}),
+    };
   },
 );

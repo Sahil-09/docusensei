@@ -2,6 +2,7 @@ allowBuilds:
   '@firebase/util': false
   '@parcel/watcher': false
   '@prisma/engines': false
+  '@sentry/cli': true
   '@swc/core': false
   better-sqlite3: false
   less: false

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { streamFlow } from 'genkit/beta/client';
 import { useApi } from '@/lib/api-client';
 import { useSmoothScroll } from '@/lib/use-smooth-scroll';
 import { useChats } from '@/lib/chat-context';
@@ -10,7 +9,6 @@ import { ChatMessage } from '@/components/chat-message';
 import { ChatInput } from '@/components/chat-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, FileText, Loader2, Sparkles, MessageSquare, Zap, BookOpen } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import gsap from 'gsap';
 import { UserButton } from '@clerk/nextjs';
 
@@ -189,7 +187,7 @@ function ChatPage() {
     try {
       const result = await postFile('/chats', formData);
 
-      const responseStream = streamAi('/genericFlow', {
+      const responseStream = await streamAi('/genericFlow', {
         message: message,
         chatId: result.chatId,
         inputMessageId: result.messageId,
@@ -255,24 +253,31 @@ function ChatPage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
             <Bot className="h-4 w-4 text-primary" />
           </div>
-          <h1 className="text-[15px] font-medium truncate">{title || 'New Chat'}</h1>
+          <h1 className="text-[15px] font-medium truncate">
+            {title || 'New Chat'}
+          </h1>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           {documents.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto max-w-[300px]">
               {documents.map((doc, index) => (
-                <div key={index} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-1.5 text-xs border border-border/40 flex-shrink-0">
+                <div
+                  key={index}
+                  className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-1.5 text-xs border border-border/40 flex-shrink-0"
+                >
                   <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  <span className="max-w-[100px] truncate font-medium">{doc.fileName}</span>
+                  <span className="max-w-[100px] truncate font-medium">
+                    {doc.fileName}
+                  </span>
                 </div>
               ))}
             </div>
           )}
-          <UserButton 
+          <UserButton
             appearance={{
               elements: {
-                avatarBox: "w-8 h-8"
-              }
+                avatarBox: 'w-8 h-8',
+              },
             }}
           />
         </div>
@@ -289,7 +294,11 @@ function ChatPage() {
                   key={index}
                   role={msg.role}
                   content={msg.content}
-                  isStreaming={isLoading && index === messages.length - 1 && msg.role === 'ASSISTANT'}
+                  isStreaming={
+                    isLoading &&
+                    index === messages.length - 1 &&
+                    msg.role === 'ASSISTANT'
+                  }
                   isNew={msg.isNew}
                 />
               ))}
@@ -300,19 +309,27 @@ function ChatPage() {
 
         <div className="flex-shrink-0 relative pt-2">
           <div className="absolute bottom-0 left-0 right-0 flex items-end justify-center pointer-events-none overflow-hidden">
-            <div 
-              className="w-[500px] h-[250px] bg-primary/25 blur-[100px] rounded-full translate-y-[70%]"
-              style={{ animation: 'glow-pulse 4s ease-in-out infinite' }}
+            <div
+              className="w-[500px] h-[200px] bg-primary/40 blur-[100px] rounded-full translate-y-[70%]"
+              style={{ animation: 'glow-pulse 3s ease-in-out infinite' }}
             />
-            <div 
-              className="absolute bottom-0 w-[350px] h-[180px] bg-primary/35 blur-[70px] rounded-full translate-y-[60%]"
-              style={{ animation: 'glow-pulse 3s ease-in-out infinite 0.5s' }}
+            <div
+              className="absolute bottom-0 w-[350px] h-[100px] bg-primary/50 blur-[70px] rounded-full translate-y-[60%]"
+              style={{ animation: 'glow-pulse 2s ease-in-out infinite 0.5s' }}
             />
           </div>
           <div className="relative bg-gradient-to-t from-background via-background/80 to-transparent pt-4 pb-2">
             <div className="max-w-2xl mx-auto">
               <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                throw new Error('Sentry Test Error');
+              }}
+            >
+              Break the world
+            </button>
           </div>
         </div>
       </main>
