@@ -9,6 +9,9 @@ import { ConfigModule } from '@nestjs/config';
 import { GenkitModule } from '../genkit';
 import { ChatsModule } from '../chats/chats.module';
 import { SharedModule } from '../shared/shared.module';
+import { LoggerModule } from 'nestjs-pino';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
+import { APP_FILTER } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -20,9 +23,18 @@ import { SharedModule } from '../shared/shared.module';
       isGlobal: true,
     }),
     GenkitModule,
-    ChatsModule
+    ChatsModule,
+    SharedModule,
+    LoggerModule.forRoot(),
+    SentryModule.forRoot(),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+  ],
 })
 export class AppModule {}

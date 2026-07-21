@@ -11,7 +11,7 @@ const nextConfig = {
 };
 
 export default withSentryConfig(withNx(nextConfig), {
-  org: 'hobby-ch0',
+  org: 'kraddy',
   project: 'docusensei',
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

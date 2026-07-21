@@ -2,6 +2,7 @@ import { googleAI, vertexAI } from '@genkit-ai/google-genai';
 import { genkit, z, Document } from 'genkit';
 import { DocumentChunk, PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'; // Direct import
+import pino, { Logger, LoggerOptions } from 'pino';
 interface RankedDocument {
   id: string;
   documentId: string;
@@ -21,7 +22,7 @@ const targetModel = googleAI.model(model, {
 
 const ai = genkit({
   plugins: [
-    googleAI({ apiKey: process.env.GEMINI_API_KEY })
+    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
     //vertexAI({ location: 'global' }),
   ],
 });
@@ -36,7 +37,7 @@ const flowOutputSchema = z.object({
 const querySchema = z.object({
   message: z.string(),
   chatId: z.string(),
-  isEval: z.boolean().default(false)
+  isEval: z.boolean().default(false),
 });
 
 const sqlRetriever = ai.defineRetriever(
@@ -52,10 +53,12 @@ const sqlRetriever = ai.defineRetriever(
     if (docIds.length === 0) {
       return { documents: [] };
     }
-    const messages = options.isEval ? await prisma.message.findMany({
-      where: { chatId: options.chatId },
-      orderBy: { createdAt: 'desc' },
-    }) : [];
+    const messages = options.isEval
+      ? await prisma.message.findMany({
+          where: { chatId: options.chatId },
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
     const messageContents = messages.length
       ? messages
           .filter((el) => el.role === 'USER')
@@ -164,6 +167,7 @@ export const genericFlow = ai.defineFlow(
     streamSchema: modelOutputSchema,
   },
   async (input, { sendChunk }) => {
+    const startTime = new Date().getTime();
     const docs = await ai.retrieve({
       retriever: sqlRetriever,
       query: input.message,
@@ -171,9 +175,11 @@ export const genericFlow = ai.defineFlow(
         ...input,
       },
     });
-    const messages = !input.isEval ?await prisma.message.findMany({
-      where: { chatId: input.chatId },
-    }) : [];
+    const messages = !input.isEval
+      ? await prisma.message.findMany({
+          where: { chatId: input.chatId },
+        })
+      : [];
 
     const { stream, response } = ai.generateStream({
       model: targetModel,
@@ -184,7 +190,7 @@ export const genericFlow = ai.defineFlow(
       docs,
       messages: messages.map((el) => {
         return {
-          content: [{text:el.content}],
+          content: [{ text: el.content }],
           role: (el.role === 'USER' ? 'user' : 'model') as 'user' | 'model',
         };
       }),
@@ -194,9 +200,15 @@ export const genericFlow = ai.defineFlow(
     }
 
     const { output, usage } = await response;
-    console.log('inputToken:',usage.inputTokens,'outputToken:',usage.outputTokens,input.inputMessageId);
+    console.log(
+      'inputToken:',
+      usage.inputTokens,
+      'outputToken:',
+      usage.outputTokens,
+      input.inputMessageId,
+    );
     if (!output) throw new Error('Failed to generate response');
-    if(!input.isEval){
+    if (!input.isEval) {
       await prisma.message.update({
         where: { id: input.inputMessageId },
         data: {
@@ -212,6 +224,7 @@ export const genericFlow = ai.defineFlow(
         },
       });
     }
+    console.log('Time Elapsed:' + ((new Date().getTime() - startTime)/1000).toFixed(2)+'s');
     return {
       text: output.text,
       ...(input.isEval
