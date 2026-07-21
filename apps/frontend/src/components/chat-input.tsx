@@ -103,6 +103,7 @@ function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            maxLength={250}
             placeholder="Ask anything..."
             disabled={disabled || isLoading}
             rows={1}

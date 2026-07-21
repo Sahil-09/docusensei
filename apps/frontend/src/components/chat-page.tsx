@@ -323,6 +323,13 @@ function ChatPage() {
               <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
           </div>
+          <button
+            onClick={() => {
+              throw new Error('Sentry Test');
+            }}
+          >
+            break
+          </button>
         </div>
       </main>
     </div>

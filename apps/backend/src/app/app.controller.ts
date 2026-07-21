@@ -31,4 +31,9 @@ export class AppController {
       lastName: user.lastName,
     };
   }
+
+  @Get("/debug-sentry")
+  getError() {
+    throw new Error("My first Sentry error!");
+  }
 }
