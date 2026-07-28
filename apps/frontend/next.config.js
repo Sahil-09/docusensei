@@ -10,9 +10,13 @@ const nextConfig = {
 };
 
 // @ts-ignore
-export default withSentryConfig(withNx(nextConfig), {
-  org: 'kraddy',
-  project: 'docusensei',
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-});
+const isSentryDisabled = process.env.DISABLE_SENTRY === 'true';
+
+export default isSentryDisabled
+  ? withNx(nextConfig)
+  : withSentryConfig(withNx(nextConfig), {
+      org: 'kraddy',
+      project: 'docusensei',
+      // Only print logs for uploading source maps in CI
+      silent: !process.env.CI,
+    });

@@ -17,7 +17,7 @@ interface Chat {
 function SideBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { chats, removeChat, updateChat } = useChats();
+  const { chats, removeChat, updateChat, isSidebarOpen, setIsSidebarOpen } = useChats();
   const [hoveredChat, setHoveredChat] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -52,10 +52,12 @@ function SideBar() {
   }, [chats, isLoaded]);
 
   const handleNewChat = () => {
+    setIsSidebarOpen(false);
     router.push('/chat/new');
   };
 
   const handleSelectChat = (id: string) => {
+    setIsSidebarOpen(false);
     router.push(`/chat/${id}`);
   };
 
@@ -84,7 +86,13 @@ function SideBar() {
   };
 
   return (
-    <aside ref={containerRef} className="fixed left-0 top-0 h-screen w-72 border-r border-border/40 bg-background flex flex-col z-20">
+    <aside
+      ref={containerRef}
+      className={cn(
+        'fixed left-0 top-0 h-screen w-72 border-r border-border/40 bg-background flex flex-col z-40 transition-transform duration-300 ease-in-out lg:translate-x-0',
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      )}
+    >
       <div className="px-5 pt-6 pb-4">
         <div ref={logoRef} className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2.5">
