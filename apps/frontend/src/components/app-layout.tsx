@@ -3,7 +3,6 @@
 import { ReactNode } from 'react';
 import { SideBar } from '@/components/side-bar';
 import { ChatProvider } from '@/lib/chat-context';
-import '../../sentry.client.config';
 
 interface AppLayoutProps {
   children: ReactNode;

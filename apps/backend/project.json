@@ -5,7 +5,6 @@
   "projectType": "application",
   "targets": {
     "docker-build": {
-      "dependsOn": ["prune"],
       "executor": "nx:run-commands",
       "options": {
         "commands": [
@@ -86,5 +85,10 @@
       }
     }
   },
-  "tags": []
+  "tags": [],
+  "docker:run": {
+    "options": {
+      "args": ["-p","4444:4444"]
+    }
+  }
 }
