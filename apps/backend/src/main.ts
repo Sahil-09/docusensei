@@ -15,7 +15,7 @@ async function bootstrap() {
   });
   app.useLogger(app.get(PinoLogger));
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   });
 

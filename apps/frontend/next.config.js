@@ -2,7 +2,6 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import { withNx } from '@nx/next/plugins/with-nx';
 
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Next.js options go here
@@ -10,6 +9,7 @@ const nextConfig = {
   // See: https://nextjs.org/docs/app/api-reference/config/next-config-js
 };
 
+// @ts-ignore
 export default withSentryConfig(withNx(nextConfig), {
   org: 'kraddy',
   project: 'docusensei',

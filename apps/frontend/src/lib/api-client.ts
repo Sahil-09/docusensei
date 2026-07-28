@@ -32,7 +32,7 @@ export function useApi() {
     return response.json();
   };
 
-  const streamWithAi = async (endpoint,input)=>{
+  const streamWithAi = async (endpoint: string, input: any) => {
     const token = await getToken({});
     return streamFlow({
       url: `${API_BASE_URL}${endpoint}`,
@@ -41,7 +41,7 @@ export function useApi() {
         Authorization: `Bearer ${token}`,
       },
     });
-  }
+  };
 
   return {
     get: (endpoint: string) => fetchWithAuth(endpoint),
