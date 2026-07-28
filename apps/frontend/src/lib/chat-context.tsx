@@ -15,6 +15,8 @@ interface ChatContextType {
   removeChat: (id: string) => void;
   updateChat: (id: string, updates: Partial<Chat>) => void;
   isLoading: boolean;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const api = useApi();
   const apiRef = useRef(api);
 
@@ -78,6 +81,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         removeChat,
         updateChat,
         isLoading,
+        isSidebarOpen,
+        setIsSidebarOpen,
       }}
     >
       {children}

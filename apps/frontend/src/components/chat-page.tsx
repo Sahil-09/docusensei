@@ -8,9 +8,10 @@ import { useChats } from '@/lib/chat-context';
 import { ChatMessage } from '@/components/chat-message';
 import { ChatInput } from '@/components/chat-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, FileText, Loader2, Sparkles, MessageSquare, Zap, BookOpen } from 'lucide-react';
+import { Bot, FileText, Loader2, Sparkles, MessageSquare, Zap, BookOpen, Menu } from 'lucide-react';
 import gsap from 'gsap';
 import { UserButton } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
 interface Message {
   id?: string;
@@ -128,7 +129,7 @@ function ChatPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { scrollToBottom } = useSmoothScroll(scrollAreaRef);
-  const { refreshChats } = useChats();
+  const { refreshChats, isSidebarOpen, setIsSidebarOpen } = useChats();
 
   useEffect(() => {
     if (chatId && chatId !== 'new') {
@@ -157,7 +158,8 @@ function ChatPage() {
       setMessages(chatData.messages || []);
       setDocuments(chatData.documents || []);
     } catch (error) {
-      console.error('Failed to load chat:', error);
+      toast.error('Error Occured.')
+      throw new Error(error instanceof Error ? error.message : String(error));
     } finally {
       setIsInitialLoading(false);
     }
@@ -248,9 +250,16 @@ function ChatPage() {
 
   return (
     <div className="h-screen flex flex-col min-w-0">
-      <header className="flex-shrink-0 px-6 pt-5 pb-4 flex items-center justify-between min-h-[60px] gap-4">
+      <header className="flex-shrink-0 px-4 sm:px-6 pt-5 pb-4 flex items-center justify-between min-h-[60px] gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 -ml-2 rounded-xl hover:bg-muted/80 lg:hidden flex-shrink-0"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-5 w-5 text-muted-foreground/80" />
+          </button>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
             <Bot className="h-4 w-4 text-primary" />
           </div>
           <h1 className="text-[15px] font-medium truncate">
@@ -259,14 +268,14 @@ function ChatPage() {
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           {documents.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto max-w-[300px]">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-[120px] sm:max-w-[300px] md:max-w-[500px] lg:max-w-[800px]">
               {documents.map((doc, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-1.5 text-xs border border-border/40 flex-shrink-0"
+                  className="flex items-center gap-1.5 bg-muted/40 rounded-lg px-2 sm:px-3 py-1.5 text-xs border border-border/40 flex-shrink-0"
                 >
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground/70" />
-                  <span className="max-w-[100px] truncate font-medium">
+                  <FileText className="h-3 w-3 sm:h-3.5 sm:w-4.5 text-muted-foreground/70" />
+                  <span className="max-w-[80px] sm:max-w-[200px] truncate font-medium">
                     {doc.fileName}
                   </span>
                 </div>
@@ -310,7 +319,7 @@ function ChatPage() {
         <div className="flex-shrink-0 relative pt-2">
           <div className="absolute bottom-0 left-0 right-0 flex items-end justify-center pointer-events-none overflow-hidden">
             <div
-              className="w-[500px] h-[200px] bg-primary/40 blur-[100px] rounded-full translate-y-[70%]"
+              className="w-[500px] h-[200px] bg-primary/40 blur-[65px] rounded-full translate-y-[70%]"
               style={{ animation: 'glow-pulse 3s ease-in-out infinite' }}
             />
             <div
@@ -323,13 +332,6 @@ function ChatPage() {
               <ChatInput onSend={handleSend} isLoading={isLoading} />
             </div>
           </div>
-          <button
-            onClick={() => {
-              throw new Error('Sentry Test');
-            }}
-          >
-            break
-          </button>
         </div>
       </main>
     </div>

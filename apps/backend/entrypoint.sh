@@ -4,6 +4,7 @@ set -e
 # Run migrations if DATABASE_URL is defined
 if [ -n "$DATABASE_URL" ]; then
   echo "🚀 Running Prisma migrations..."
+  echo $DATABASE_URL
   # Run from the apps/backend directory so prisma can find prisma.config.mjs and resolve paths correctly
   cd /app/apps/backend
   # Run the pre-installed prisma executable directly to guarantee offline & fast execution
