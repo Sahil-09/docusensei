@@ -197,7 +197,7 @@ export const genericFlow = ai.defineFlow(
       query: input.message,
       options: {
         ...input,
-        k:15
+        k:25
       },
     });
     sendChunk({
