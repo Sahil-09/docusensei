@@ -58,7 +58,7 @@ COPY --from=builder /app/prod-install/package.json ./package.json
 COPY --from=builder /app/dist/apps/backend ./dist/apps/backend
 COPY --from=builder /app/apps/backend/generated/ ./apps/backend/generated/
 COPY --from=builder /app/apps/backend/prisma/ /app/apps/backend/prisma/
-COPY --from=builder /app/apps/backend/prisma.config.mjs /app/apps/backend/prisma.config.mjs
+COPY --from=builder /app/apps/backend/prisma.config.ts /app/apps/backend/prisma.config.ts
 
 # Copy the custom entrypoint script
 COPY apps/backend/entrypoint.sh ./entrypoint.sh
