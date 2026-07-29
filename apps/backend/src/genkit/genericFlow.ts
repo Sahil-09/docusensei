@@ -14,7 +14,7 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const model = 'gemini-3.5-pro';
+const model = 'gemini-3.5-flash-lite';
 const targetModel = googleAI.model(model, {
   temperature: 0.7,
   thinkingConfig: { thinkingLevel: 'LOW' },
