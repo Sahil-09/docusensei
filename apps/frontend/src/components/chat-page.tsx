@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useApi } from '@/lib/api-client';
 import { useSmoothScroll } from '@/lib/use-smooth-scroll';
@@ -8,7 +8,16 @@ import { useChats } from '@/lib/chat-context';
 import { ChatMessage } from '@/components/chat-message';
 import { ChatInput } from '@/components/chat-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, FileText, Loader2, Sparkles, MessageSquare, Zap, BookOpen, Menu } from 'lucide-react';
+import {
+  Bot,
+  FileText,
+  Loader2,
+  Sparkles,
+  MessageSquare,
+  Zap,
+  BookOpen,
+  Menu,
+} from 'lucide-react';
 import gsap from 'gsap';
 import { UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -18,6 +27,9 @@ interface Message {
   role: 'USER' | 'ASSISTANT';
   content: string;
   isNew?: boolean;
+  systemInfoMessage?: {
+    text:string
+  };
 }
 
 interface Document {
@@ -43,13 +55,32 @@ function AnimatedEmptyState() {
 
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-    tl.fromTo(iconRef.current, { opacity: 0, scale: 0.5, rotation: -10 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.6 })
-      .fromTo(titleRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
-      .fromTo(descRef.current, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.2');
+    tl.fromTo(
+      iconRef.current,
+      { opacity: 0, scale: 0.5, rotation: -10 },
+      { opacity: 1, scale: 1, rotation: 0, duration: 0.6 },
+    )
+      .fromTo(
+        titleRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5 },
+        '-=0.3',
+      )
+      .fromTo(
+        descRef.current,
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.5 },
+        '-=0.2',
+      );
 
     const cards = cardsRef.current?.children;
     if (cards && cards.length > 0) {
-      tl.fromTo(Array.from(cards), { opacity: 0, y: 20, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.1 }, '-=0.2');
+      tl.fromTo(
+        Array.from(cards),
+        { opacity: 0, y: 20, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.1 },
+        '-=0.2',
+      );
     }
 
     gsap.to(iconRef.current, {
@@ -62,7 +93,10 @@ function AnimatedEmptyState() {
   }, []);
 
   return (
-    <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-auto px-6 pb-32">
+    <div
+      ref={containerRef}
+      className="flex-1 flex items-center justify-center overflow-auto px-6 pb-32"
+    >
       <div className="text-center max-w-md">
         <div ref={iconRef} className="relative mx-auto w-16 h-16 mb-6">
           <div className="absolute inset-0 bg-primary/10 rounded-2xl rotate-6 scale-110" />
@@ -71,24 +105,55 @@ function AnimatedEmptyState() {
             <Sparkles className="h-7 w-7 text-primary/70" />
           </div>
         </div>
-        <h2 ref={titleRef} className="text-2xl font-semibold mb-3 tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+        <h2
+          ref={titleRef}
+          className="text-2xl font-semibold mb-3 tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
+        >
           How can I help?
         </h2>
-        <p ref={descRef} className="text-muted-foreground/60 text-[14px] leading-relaxed max-w-xs mx-auto mb-8">
-          Upload documents and ask questions to get insights from your knowledge base.
+        <p
+          ref={descRef}
+          className="text-muted-foreground/60 text-[14px] leading-relaxed max-w-xs mx-auto mb-8"
+        >
+          Upload documents and ask questions to get insights from your knowledge
+          base.
         </p>
         <div ref={cardsRef} className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-          <QuickActionCard icon={MessageSquare} title="Ask Questions" description="Query your docs" />
-          <QuickActionCard icon={Zap} title="Get Insights" description="AI-powered analysis" />
-          <QuickActionCard icon={BookOpen} title="Summarize" description="Key takeaways" />
-          <QuickActionCard icon={FileText} title="Extract Info" description="Find specifics" />
+          <QuickActionCard
+            icon={MessageSquare}
+            title="Ask Questions"
+            description="Query your docs"
+          />
+          <QuickActionCard
+            icon={Zap}
+            title="Get Insights"
+            description="AI-powered analysis"
+          />
+          <QuickActionCard
+            icon={BookOpen}
+            title="Summarize"
+            description="Key takeaways"
+          />
+          <QuickActionCard
+            icon={FileText}
+            title="Extract Info"
+            description="Find specifics"
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function QuickActionCard({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
+function QuickActionCard({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -158,7 +223,7 @@ function ChatPage() {
       setMessages(chatData.messages || []);
       setDocuments(chatData.documents || []);
     } catch (error) {
-      toast.error('Error Occured.')
+      toast.error('Error Occured.');
       throw new Error(error instanceof Error ? error.message : String(error));
     } finally {
       setIsInitialLoading(false);
@@ -198,7 +263,7 @@ function ChatPage() {
 
       let isFirstChunk = true;
       for await (const chunk of responseStream.stream) {
-        if (chunk.text) {
+        if (chunk.text || chunk.systemInfoMessage) {
           if (isFirstChunk) {
             setMessages((prev) => [
               ...prev,
@@ -206,6 +271,7 @@ function ChatPage() {
                 role: 'ASSISTANT',
                 content: chunk.text,
                 isNew: true,
+                systemInfoMessage: chunk.systemInfoMessage,
               },
             ]);
             isFirstChunk = false;
@@ -213,14 +279,23 @@ function ChatPage() {
             setMessages((prev) => {
               const newMsgs = [...prev];
               newMsgs[newMsgs.length - 1].content = chunk.text;
+              newMsgs[newMsgs.length - 1].systemInfoMessage =
+                chunk.systemInfoMessage;
               return newMsgs;
             });
           }
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
+        // if (chunk.systemInfoMessage) {
+        //   setProgress(chunk.systemInfoMessage.text);
+        // }
       }
 
-      setMessages((prev) => prev.map((msg, idx) => (idx === prev.length - 1 ? { ...msg, isNew: false } : msg)));
-
+      setMessages((prev) =>
+        prev.map((msg, idx) =>
+          idx === prev.length - 1 ? { ...msg, isNew: false } : msg,
+        ),
+      );
       if (uploadedFiles.length > 0) {
         const chatData: ChatData = await get(`/chats/${result.chatId}`);
         setDocuments(chatData.documents || []);
@@ -228,7 +303,7 @@ function ChatPage() {
       if (!currentChatId && result.chatId) {
         setCurrentChatId(result.chatId);
         router.push(`/chat/${result.chatId}`);
-        refreshChats();
+        await refreshChats();
       }
     } catch (error) {
       console.error('Streaming failed:', error);
@@ -303,6 +378,7 @@ function ChatPage() {
                   key={index}
                   role={msg.role}
                   content={msg.content}
+                  systemInfoMessage={msg.systemInfoMessage}
                   isStreaming={
                     isLoading &&
                     index === messages.length - 1 &&

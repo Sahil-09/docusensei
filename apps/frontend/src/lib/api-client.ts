@@ -34,7 +34,20 @@ export function useApi() {
 
   const streamWithAi = async (endpoint: string, input: any) => {
     const token = await getToken({});
-    return streamFlow({
+    interface StreamChunk {
+      text: string;
+      systemInfoMessage: {
+        text:string,
+        meta:{
+          inputToken:number,
+          outputToken:number
+        }
+      };
+    }
+    interface MyOutput {
+      text: string;
+    }
+    return streamFlow<MyOutput,StreamChunk>({
       url: `${API_BASE_URL}${endpoint}`,
       input,
       headers: {

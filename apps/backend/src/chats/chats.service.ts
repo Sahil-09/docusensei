@@ -78,11 +78,14 @@ export class ChatsService {
     const userData = await this.prisma.user.findUnique({
       where: { clerkId: user.id },
     });
+    if (!userData){
+      return {message:'User not found for:'+user.id}
+    }
     return this.prisma.chat.findMany({
-      where: { userId: userData.id, deletedAt:null },
-      select: { title: true, id: true },
-      orderBy: { createdAt:'desc' }
-    });
+        where: { userId: userData.id, deletedAt: null },
+        select: { title: true, id: true },
+        orderBy: { createdAt: 'desc' },
+      });
   }
 
   findOne(id: string) {

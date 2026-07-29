@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/lib/utils';
-import { User, Bot, Copy, Check } from 'lucide-react';
+import { User, Bot, Copy, Check, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import gsap from 'gsap';
 
@@ -14,6 +14,9 @@ interface ChatMessageProps {
   content: string;
   isStreaming?: boolean;
   isNew?: boolean;
+  systemInfoMessage?: {
+    text:string
+  };
 }
 
 const CodeBlock = memo(function CodeBlock({
@@ -105,7 +108,13 @@ function StreamingText({ content, isStreaming }: { content: string; isStreaming:
   );
 }
 
-function ChatMessage({ role, content, isStreaming, isNew }: ChatMessageProps) {
+function ChatMessage({
+  role,
+  content,
+  isStreaming,
+  isNew,
+  systemInfoMessage,
+}: ChatMessageProps) {
   const isUser = role === 'USER';
   const messageRef = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -122,7 +131,7 @@ function ChatMessage({ role, content, isStreaming, isNew }: ChatMessageProps) {
           duration: 0.4,
           ease: 'power3.out',
           onComplete: () => setHasAnimated(true),
-        }
+        },
       );
     } else if (!isNew && messageRef.current) {
       gsap.set(messageRef.current, { opacity: 1, y: 0, scale: 1 });
@@ -134,7 +143,9 @@ function ChatMessage({ role, content, isStreaming, isNew }: ChatMessageProps) {
       <div ref={messageRef} className="group py-4 first:pt-0">
         <div className="flex gap-3 max-w-2xl mx-auto px-4 sm:px-6 flex-row-reverse">
           <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 max-w-[85%]">
-            <p className="text-[14px] leading-[1.6] whitespace-pre-wrap">{content}</p>
+            <p className="text-[14px] leading-[1.6] whitespace-pre-wrap">
+              {content}
+            </p>
             {isStreaming && (
               <span className="inline-block w-1.5 h-4 bg-primary-foreground/50 animate-pulse rounded-full ml-1" />
             )}
@@ -155,6 +166,17 @@ function ChatMessage({ role, content, isStreaming, isNew }: ChatMessageProps) {
             Assistant
           </div>
           <StreamingText content={content} isStreaming={isStreaming || false} />
+          {
+            !!systemInfoMessage?.text &&
+            <div className="flex items-center gap-2 overflow-x-auto justify-center">
+              <div className="flex items-center gap-1.5 bg-muted/40 rounded-lg px-2 sm:px-3 py-1.5 text-xs border border-border/40 flex-shrink-0">
+                <span className="max-w-[80px] sm:max-w-[200px] truncate font-medium">
+                  {systemInfoMessage?.text}
+                </span>
+                <Loader2 className="h-[18px] w-[18px] animate-spin" />
+              </div>
+            </div>
+          }
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const model = 'gemini-3.5-pro';
+const model = 'gemini-3.5-flash-lite';
 const targetModel = googleAI.model(model, {
   temperature: 0.7,
   thinkingConfig: { thinkingLevel: 'LOW' },
@@ -27,17 +27,36 @@ const ai = genkit({
   ],
 });
 
-const modelOutputSchema = z.object({ text: z.string() });
+const modelOutputSchema = z.object({
+  text: z.string(),
+  systemInfoMessage: z.object({
+    text: z.string().optional(),
+    meta: z.object({
+        inputToken: z.number(),
+        outputToken: z.number(),
+      })
+      .optional(),
+  }).optional(),
+});
 
 const flowOutputSchema = z.object({
   text: z.string(),
   retrievedDocs: z.array(z.string()).optional(),
+  systemInfoMessage: z.object({
+      text:z.string().optional(),
+      meta:z.object({
+        inputToken:z.number(),
+        outputToken:z.number(),
+        elapsed:z.number()
+      }).optional()
+    }),
 });
 
 const querySchema = z.object({
   message: z.string(),
   chatId: z.string(),
   isEval: z.boolean().default(false),
+  k:z.number()
 });
 
 const sqlRetriever = ai.defineRetriever(
@@ -85,7 +104,7 @@ const sqlRetriever = ai.defineRetriever(
        FROM "document_chunks"
        WHERE "documentId" IN (${docIds})
        ORDER BY embedding <=> '${embeddingString}'::vector
-       LIMIT 10
+       LIMIT ${options.k}
      `;
     const keywordQuery = `
        SELECT id, "documentId", content, metadata, "createdAt"
@@ -93,7 +112,7 @@ const sqlRetriever = ai.defineRetriever(
        WHERE "documentId" IN (${docIds})
          AND to_tsvector('english', content) @@ websearch_to_tsquery('english', '${sanitizedQuery}')
        ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', '${sanitizedQuery}')) DESC
-       LIMIT 10
+       LIMIT ${options.k}
      `;
     const [vectorDocs, keywordDocs] = await Promise.all([
       prisma.$queryRawUnsafe<RankedDocument[]>(vectorQuery),
@@ -102,7 +121,7 @@ const sqlRetriever = ai.defineRetriever(
     // Apply RRF to fuse results
     const fusedDocs = reciprocalRankFusion(vectorDocs, keywordDocs).slice(
       0,
-      10,
+      options.k,
     );
     function reciprocalRankFusion(
       vectorResults: RankedDocument[],
@@ -167,20 +186,31 @@ export const genericFlow = ai.defineFlow(
     streamSchema: modelOutputSchema,
   },
   async (input, { sendChunk }) => {
+    sendChunk({ text: '', systemInfoMessage: { text: 'Thinking' } });
     const startTime = new Date().getTime();
+    sendChunk({
+      text: '',
+      systemInfoMessage: { text: 'Retrieving Documents' },
+    });
     const docs = await ai.retrieve({
       retriever: sqlRetriever,
       query: input.message,
       options: {
         ...input,
+        k:15
       },
+    });
+    sendChunk({
+      text: '',
+      systemInfoMessage: { text: `${docs.length} Document(s) Chunks Retrieved` },
     });
     const messages = !input.isEval
       ? await prisma.message.findMany({
           where: { chatId: input.chatId },
         })
       : [];
-
+    sendChunk({ text: '', systemInfoMessage: { text: `Preparing Context.` } });
+    sendChunk({ text: '', systemInfoMessage: { text: `Preparing Context..` } });
     const { stream, response } = ai.generateStream({
       model: targetModel,
       prompt: `You are acting as helpful assistant. Use only the context provided to answer the question. If you dont know, do not make up an answer.
@@ -194,6 +224,10 @@ export const genericFlow = ai.defineFlow(
           role: (el.role === 'USER' ? 'user' : 'model') as 'user' | 'model',
         };
       }),
+    });
+    sendChunk({
+      text: '',
+      systemInfoMessage: { text: `Analyzing the documents` },
     });
     for await (const chunk of stream) {
       if (chunk.output) sendChunk(chunk.output);
@@ -227,6 +261,13 @@ export const genericFlow = ai.defineFlow(
     console.log('Time Elapsed:' + ((new Date().getTime() - startTime)/1000).toFixed(2)+'s');
     return {
       text: output.text,
+      systemInfoMessage: {
+        meta: {
+          inputToken: usage.inputTokens,
+          outputToken: usage.outputTokens,
+          elapsed: new Date().getTime() - startTime,
+        },
+      },
       ...(input.isEval
         ? {
             retrievedDocs: Array.isArray(docs)
