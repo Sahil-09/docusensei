@@ -8,6 +8,8 @@
     }
   ],
   "compilerOptions": {
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "inlineSources": true
   }
 }
