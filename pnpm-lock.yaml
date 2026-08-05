@@ -14,6 +14,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^7.5.15
         version: 7.5.15(next@16.1.7(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.101.0))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@genkit-ai/evaluator':
+        specifier: ^1.40.1
+        version: 1.40.1(genkit@1.39.0(@google-cloud/firestore@8.6.0)(firebase-admin@14.1.0))
       '@genkit-ai/express':
         specifier: ^1.39.0
         version: 1.39.0(express@5.2.1)(genkit@1.39.0(@google-cloud/firestore@8.6.0)(firebase-admin@14.1.0))
@@ -1118,6 +1121,11 @@ packages:
 
   '@genkit-ai/core@1.39.0':
     resolution: {integrity: sha512-MI0cpmwc4K/KPVsXFAcHviOybt3T3IsVSsN37cEcOzo7mmv+s0JSdooxlQgZn68B6e3I8BNLL3Vk1vyc6qIlCw==}
+
+  '@genkit-ai/evaluator@1.40.1':
+    resolution: {integrity: sha512-QEtKxowSxg5zS1Tv54b3ZWhqESWNv5AkcVKjVCB4PqKvVm2B9Q8hSTE7vIZzrNEOBS9Bom7h3LUire7MaAFPuQ==}
+    peerDependencies:
+      genkit: ^1.40.1
 
   '@genkit-ai/express@1.39.0':
     resolution: {integrity: sha512-ow1ei0Rc7LSAiLUc4ifdN8iRytoyC06FkS9nbm1s/SfHGItfgcsmB0Au54n/1mllzAIWx++xvJs8uGpwMwYFvg==}
@@ -5120,6 +5128,15 @@ packages:
     resolution: {integrity: sha512-9mAqGPHLakhCLeNyxPkK4xVo746zQ/czLH1Ky+vkitMnWfWZps8r0qXuwhwizagCRttsL4lfG4pIOvaWLpAP0w==}
     engines: {node: '>= 0.8.0'}
 
+  compute-cosine-similarity@1.1.0:
+    resolution: {integrity: sha512-FXhNx0ILLjGi9Z9+lglLzM12+0uoTnYkHm7GiadXDAr0HGVLm25OivUS1B/LPkbzzvlcXz/1EvWg9ZYyJSdhTw==}
+
+  compute-dot@1.1.0:
+    resolution: {integrity: sha512-L5Ocet4DdMrXboss13K59OK23GXjiSia7+7Ukc7q4Bl+RVpIXK2W9IHMbWDZkh+JUEvJAwOKRaJDiFUa1LTnJg==}
+
+  compute-l2norm@1.1.0:
+    resolution: {integrity: sha512-6EHh1Elj90eU28SXi+h2PLnTQvZmkkHWySpoFz+WOlVNLz3DQoC4ISUHSV9n5jMxPHtKGJ01F4uu2PsXBB8sSg==}
+
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
@@ -6739,6 +6756,10 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsonata@2.2.2:
+    resolution: {integrity: sha512-XDFH2PuaAXv0AXJEWwElXbqADmKFGKMLMkFb+qOz0EhjQW2EIJ6pgtordLU+4u3IVERyBfqy6bi6kZKEncvRqA==}
+    engines: {node: '>= 8'}
 
   jsonc-parser@3.3.1:
     resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
@@ -9312,6 +9333,12 @@ packages:
       typescript:
         optional: true
 
+  validate.io-array@1.0.6:
+    resolution: {integrity: sha512-DeOy7CnPEziggrOO5CZhVKJw6S3Yi7e9e65R1Nl/RTN1vTQKnzjfvks0/8kQ40FP/dsjRAOd4hxmJ7uLa6vxkg==}
+
+  validate.io-function@1.0.2:
+    resolution: {integrity: sha512-LlFybRJEriSuBnUhQyG5bwglhh50EpTL2ul23MPIuR1odjO7XaMLFV8vHGwp7AZciFxtYOeiSCT5st+XSPONiQ==}
+
   validator@13.15.35:
     resolution: {integrity: sha512-TQ5pAGhd5whStmqWvYF4OjQROlmv9SMFVt37qoCBdqRffuuklWYQlCNnEs2ZaIBD1kZRNnikiZOS1eqgkar0iw==}
     engines: {node: '>= 0.10'}
@@ -10822,6 +10849,14 @@ snapshots:
       - genkit
       - supports-color
       - utf-8-validate
+
+  '@genkit-ai/evaluator@1.40.1(genkit@1.39.0(@google-cloud/firestore@8.6.0)(firebase-admin@14.1.0))':
+    dependencies:
+      compute-cosine-similarity: 1.1.0
+      dotprompt: 1.1.2
+      genkit: 1.39.0(@google-cloud/firestore@8.6.0)(firebase-admin@14.1.0)
+      jsonata: 2.2.2
+      node-fetch: 3.3.2
 
   '@genkit-ai/express@1.39.0(express@5.2.1)(genkit@1.39.0(@google-cloud/firestore@8.6.0)(firebase-admin@14.1.0))':
     dependencies:
@@ -15514,6 +15549,23 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  compute-cosine-similarity@1.1.0:
+    dependencies:
+      compute-dot: 1.1.0
+      compute-l2norm: 1.1.0
+      validate.io-array: 1.0.6
+      validate.io-function: 1.0.2
+
+  compute-dot@1.1.0:
+    dependencies:
+      validate.io-array: 1.0.6
+      validate.io-function: 1.0.2
+
+  compute-l2norm@1.1.0:
+    dependencies:
+      validate.io-array: 1.0.6
+      validate.io-function: 1.0.2
+
   concat-map@0.0.1: {}
 
   concat-stream@2.0.0:
@@ -17492,6 +17544,8 @@ snapshots:
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json5@2.2.3: {}
+
+  jsonata@2.2.2: {}
 
   jsonc-parser@3.3.1: {}
 
@@ -20392,6 +20446,10 @@ snapshots:
   valibot@1.2.0(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
+
+  validate.io-array@1.0.6: {}
+
+  validate.io-function@1.0.2: {}
 
   validator@13.15.35: {}
 

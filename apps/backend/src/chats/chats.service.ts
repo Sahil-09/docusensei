@@ -14,7 +14,7 @@ export class ChatsService {
   ) {}
   private logger = new Logger(ChatsService.name);
 
-  async create(createChatDto: CreateChatDto, files, user) {
+  async createUpdate(createChatDto: CreateChatDto, files, user) {
     const userData = await this.prisma.user.findUnique({
       where: { clerkId: user.id },
     });
@@ -25,16 +25,14 @@ export class ChatsService {
     if (!createChatDto.chatId) {
       title = await this.utilSer.generateFromAi(createChatDto.message);
     }
-    let chatId = createChatDto.chatId
-    if (!createChatDto.chatId){
+    let chatId = createChatDto.chatId;
+    if (!createChatDto.chatId) {
       const createChat = await this.prisma.chat.create({
         data: { userId: userData.id, title },
       });
       chatId = createChat.id;
     }
-    this.logger.log(
-      `Created chat with ID: ${chatId} for user: ${userData.id}`,
-    );
+    this.logger.log(`Created chat with ID: ${chatId} for user: ${userData.id}`);
     const createMessage = await this.prisma.message.create({
       data: {
         chatId: chatId,
@@ -47,7 +45,7 @@ export class ChatsService {
     );
     if (files.length) await this.updatedDoc(chatId, userData.id, files);
     return {
-      message: createChatDto?.chatId ? 'Updated' :'Created',
+      message: createChatDto?.chatId ? 'Updated' : 'Created',
       chatId: chatId,
       messageId: createMessage.id,
     };
@@ -78,14 +76,14 @@ export class ChatsService {
     const userData = await this.prisma.user.findUnique({
       where: { clerkId: user.id },
     });
-    if (!userData){
-      return {message:'User not found for:'+user.id}
+    if (!userData) {
+      return { message: 'User not found for:' + user.id };
     }
     return this.prisma.chat.findMany({
-        where: { userId: userData.id, deletedAt: null },
-        select: { title: true, id: true },
-        orderBy: { createdAt: 'desc' },
-      });
+      where: { userId: userData.id, deletedAt: null },
+      select: { title: true, id: true },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   findOne(id: string) {
@@ -93,11 +91,11 @@ export class ChatsService {
       where: { id },
       include: {
         messages: {
-          select:{
-            role:true,
-            content:true,
-            tokenCount:true,
-          }
+          select: {
+            role: true,
+            content: true,
+            tokenCount: true,
+          },
         },
         documents: {
           select: {

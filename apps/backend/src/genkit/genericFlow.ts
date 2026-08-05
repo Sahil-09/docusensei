@@ -1,8 +1,8 @@
-import { googleAI, vertexAI } from '@genkit-ai/google-genai';
+import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z, Document } from 'genkit';
-import { DocumentChunk, PrismaClient } from '../../generated/prisma/client';
+import {  PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'; // Direct import
-import pino, { Logger, LoggerOptions } from 'pino';
+
 interface RankedDocument {
   id: string;
   documentId: string;
