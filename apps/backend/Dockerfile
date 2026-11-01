@@ -9,7 +9,7 @@ WORKDIR /app
 # Enable PNPM
 ENV PNPM_HOME='/pnpm'
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@12.16.1 --activate
 
 # Copy workspace settings and dependency lockfiles
 COPY package.json pnpm-lock.yaml* nx.json tsconfig.base.json pnpm-workspace.yaml* ./
