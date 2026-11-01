@@ -6,16 +6,15 @@ ARG NODE_VERSION=24.1.0-alpine
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
 
-# Enable PNPM
-ENV PNPM_HOME='/pnpm'
+# Bypass Corepack and install pnpm cleanly via npm
+ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@12.16.1 --activate
+RUN npm install -g pnpm@12.16.1
 
 # Copy workspace settings and dependency lockfiles
 COPY package.json pnpm-lock.yaml* nx.json tsconfig.base.json pnpm-workspace.yaml* ./
 
-# Install all workspace dependencies (with increased fetch timeout)
-# Placed BEFORE COPY apps/ to cache npm installations and speed up builds
+# Install all workspace dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts --fetch-timeout 1200000
 
 # Cache buster for copying application code
