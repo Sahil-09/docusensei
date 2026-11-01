@@ -2,6 +2,7 @@
   "name": "docusensei",
   "version": "0.0.0",
   "license": "MIT",
+  "packageManager": "pnpm@12.16.1",
   "scripts": {
     "dev": "nx run-many --targets=dev,serve --parallel=true",
     "frontend": "nx run frontend:dev",
