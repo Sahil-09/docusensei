@@ -33,7 +33,7 @@ const targetModel = vertexAI.model(model, {
 
 const ai = genkit({
   plugins: [
-    googleAI({ apiKey: process.env.GEMINI_API_KEY })
+    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
     //vertexAI({ location: 'global' }),
   ],
 });
@@ -73,42 +73,36 @@ export const indexData = ai.defineFlow(
           meta: { fileName: input.file.originalname },
         });
       });
-
       // Add documents to the index
-      const docIndex = await Promise.all(
-        documents?.map(async (el: Document) => {
-          const createDocChunk = await prisma.documentChunk.create({
-            data: {
-              documentId: input.docId,
-              content: el.text,
-            },
-          });
-          console.log(
-            `Created document chunk with ID: ${createDocChunk.id} for document: ${input.docId}`,
-          );
+      let i = 0;
+      for (const el of documents) {
+        console.log(
+          `Embedded: ${i}/${documents.length} for document: ${input.docId}`,
+        );
 
-          const embedded = await ai.embed({
-            embedder: googleAI.embedder('gemini-embedding-001'),
-            content: el.text,
-            options: {
-              outputDimensionality: 384, // Reduce from 768 to 384                                                                                                                                                                                                         MCP
-            },
-          });
-          const embeddingArray = embedded[0].embedding;
-          const embeddingString = `[${embeddingArray
-            .map((v) => {
-              const num = Number(v);
-              return isFinite(num) ? num : 0;
-            })
-            .join(',')}]`;
-          const updateQuery = `UPDATE "document_chunks" SET "embedding" = '${embeddingString}'::vector WHERE "id" = '${createDocChunk.id}'`;
-          await prisma.$executeRawUnsafe(updateQuery);
-        }),
-      );
+        const embedded = await ai.embed({
+          embedder: googleAI.embedder('gemini-embedding-001'),
+          content: el.text,
+          options: {
+            outputDimensionality: 384, // Reduce from 768 to 384                                                                                                                                                                                                         MCP
+          },
+        });
+        const embeddingArray = embedded[0].embedding;
+        const embeddingString = `[${embeddingArray
+          .map((v) => {
+            const num = Number(v);
+            return isFinite(num) ? num : 0;
+          })
+          .join(',')}]`;
+
+        const insertQuery = `INSERT INTO document_chunks (documentId, embedding, content) VALUES (${input.docId}, '${embeddingString}'::vector, '${el.text}')`;
+        await prisma.$executeRawUnsafe(insertQuery);
+        i++;
+      }
       const updateDoc = await prisma.document.update({
         where: { id: input.docId },
         data: {
-          processingStatus:'COMPLETED'
+          processingStatus: 'COMPLETED',
         },
       });
       return {
@@ -117,6 +111,12 @@ export const indexData = ai.defineFlow(
       };
     } catch (err) {
       // For unexpected errors that throw exceptions
+      await prisma.document.update({
+        where: { id: input.docId },
+        data: {
+          processingStatus: 'FAILED',
+        },
+      });
       return {
         success: false,
         documentsIndexed: 0,

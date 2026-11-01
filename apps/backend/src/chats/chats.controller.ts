@@ -24,12 +24,12 @@ export class ChatsController {
   @Post()
   @UseGuards(ClerkAuthGuard)
   @UseInterceptors(FilesInterceptor('files', 10))
-  create(
+  createUpdate(
     @Body() createChatDto: CreateChatDto,
     @UploadedFiles() files: Express.Multer.File[],
     @CurrentUser() currentUser: any,
   ) {
-    return this.chatsService.create(createChatDto, files, currentUser);
+    return this.chatsService.createUpdate(createChatDto, files, currentUser);
   }
 
   @Post('embeddingTest')
