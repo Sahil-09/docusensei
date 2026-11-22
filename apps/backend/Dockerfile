@@ -37,7 +37,7 @@ RUN npx nx build backend
 # We explicitly add @prisma/client and @nestjs/config because they are missed or classed as devDependencies in the root package.json
 WORKDIR /app/prod-install
 RUN cp /app/dist/apps/backend/package.json ./package.json && \
-    (pnpm install --prod --no-frozen-lockfile --ignore-scripts --fetch-timeout 1200000 && pnpm add @prisma/client prisma @nestjs/config --save-prod) || \
+    (pnpm install --prod --no-frozen-lockfile --ignore-scripts --fetch-timeout 1200000 && pnpm add @prisma/client prisma @nestjs/config --save-prod --ignore-scripts) || \
     (npm install --omit=dev && npm install @prisma/client prisma @nestjs/config)
 
 
