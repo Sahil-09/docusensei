@@ -9,7 +9,7 @@ WORKDIR /app
 # Bypass Corepack and install pnpm cleanly via npm
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@12.16.1
+RUN corepack disable && npm install -g pnpm@12.16.1 && which pnpm && pnpm --version
 
 # Copy workspace settings and dependency lockfiles
 COPY package.json pnpm-lock.yaml* nx.json tsconfig.base.json pnpm-workspace.yaml* ./
