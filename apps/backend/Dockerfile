@@ -34,10 +34,10 @@ RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
 RUN npx nx build backend
 
 # Create a separate folder to install production-only dependencies at root level
-# We explicitly add @prisma/client and @nestjs/config because they are missed or classed as devDependencies in the root package.json
+# We explicitly add @prisma/client, prisma, @nestjs/config and tslib because they are missed or classed as devDependencies in the root package.json
 WORKDIR /app/prod-install
 RUN cp /app/dist/apps/backend/package.json ./package.json && \
-    (pnpm install --prod --no-frozen-lockfile --ignore-scripts --fetch-timeout 1200000 && pnpm add @prisma/client prisma @nestjs/config --save-prod --ignore-scripts) || \
+    (pnpm install --prod --no-frozen-lockfile --ignore-scripts --fetch-timeout 1200000 && pnpm add @prisma/client prisma @nestjs/config tslib --save-prod --ignore-scripts) || \
     (npm install --omit=dev && npm install @prisma/client prisma @nestjs/config)
 
 
