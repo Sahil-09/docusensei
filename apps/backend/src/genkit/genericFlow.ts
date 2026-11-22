@@ -1,6 +1,6 @@
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z, Document } from 'genkit';
-import {  PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'; // Direct import
 
 interface RankedDocument {
@@ -14,10 +14,9 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const model = 'gemini-3.5-flash-lite';
+const model = process.env.AI_MODEL || 'gemini-3.8-flash';
 const targetModel = googleAI.model(model, {
   temperature: 0.7,
-  thinkingConfig: { thinkingLevel: 'LOW' },
 });
 
 const ai = genkit({
@@ -29,34 +28,39 @@ const ai = genkit({
 
 const modelOutputSchema = z.object({
   text: z.string(),
-  systemInfoMessage: z.object({
-    text: z.string().optional(),
-    meta: z.object({
-        inputToken: z.number(),
-        outputToken: z.number(),
-      })
-      .optional(),
-  }).optional(),
+  systemInfoMessage: z
+    .object({
+      text: z.string().optional(),
+      meta: z
+        .object({
+          inputToken: z.number(),
+          outputToken: z.number(),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 const flowOutputSchema = z.object({
   text: z.string(),
   retrievedDocs: z.array(z.string()).optional(),
   systemInfoMessage: z.object({
-      text:z.string().optional(),
-      meta:z.object({
-        inputToken:z.number(),
-        outputToken:z.number(),
-        elapsed:z.number()
-      }).optional()
-    }),
+    text: z.string().optional(),
+    meta: z
+      .object({
+        inputToken: z.number(),
+        outputToken: z.number(),
+        elapsed: z.number(),
+      })
+      .optional(),
+  }),
 });
 
 const querySchema = z.object({
   message: z.string(),
   chatId: z.string(),
   isEval: z.boolean().default(false),
-  k:z.number()
+  k: z.number(),
 });
 
 const sqlRetriever = ai.defineRetriever(
@@ -186,7 +190,7 @@ export const genericFlow = ai.defineFlow(
     streamSchema: modelOutputSchema,
   },
   async (input, { sendChunk }) => {
-    sendChunk({ text: '', systemInfoMessage: { text: 'Thinking' } });
+    sendChunk({ text: '', systemInfoMessage: { text: 'Thinking 🤖' } });
     const startTime = new Date().getTime();
     sendChunk({
       text: '',
@@ -197,12 +201,14 @@ export const genericFlow = ai.defineFlow(
       query: input.message,
       options: {
         ...input,
-        k:25
+        k: 25,
       },
     });
     sendChunk({
       text: '',
-      systemInfoMessage: { text: `${docs.length} Document(s) Chunks Retrieved` },
+      systemInfoMessage: {
+        text: `${docs.length} Document(s) Chunks Retrieved`,
+      },
     });
     const messages = !input.isEval
       ? await prisma.message.findMany({
@@ -258,7 +264,11 @@ export const genericFlow = ai.defineFlow(
         },
       });
     }
-    console.log('Time Elapsed:' + ((new Date().getTime() - startTime)/1000).toFixed(2)+'s');
+    console.log(
+      'Time Elapsed:' +
+        ((new Date().getTime() - startTime) / 1000).toFixed(2) +
+        's',
+    );
     return {
       text: output.text,
       systemInfoMessage: {
