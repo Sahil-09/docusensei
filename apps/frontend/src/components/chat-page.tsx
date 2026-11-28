@@ -373,7 +373,7 @@ function ChatPage() {
         ) : (
           <ScrollArea ref={scrollAreaRef} className="flex-1 h-0 smooth-scroll">
             <div className="py-6">
-              {messages.map((msg, index) => (
+              {messages.filter(msg=>!!msg.content).map((msg, index) => (
                 <ChatMessage
                   key={index}
                   role={msg.role}
