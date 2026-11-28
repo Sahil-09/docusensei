@@ -25,7 +25,34 @@ import { APP_FILTER } from '@nestjs/core';
     GenkitModule,
     ChatsModule,
     SharedModule,
-    LoggerModule.forRoot(),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport: !process.env.VERCEL
+          ? {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                singleLine: false,
+                translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+                ignore: 'pid,hostname',
+              },
+            }
+          : undefined,
+        formatters: {
+          level: (label) => ({ level: label }),
+        },
+        serializers: {
+          req(req: any) {
+            return `${req.method} ${req.url} | query=${JSON.stringify(req.query)} | params=${JSON.stringify(req.params)} | host=${req.headers.host} | user-agent=${req.headers['user-agent']} | content-type=${req.headers['content-type']} | x-forwarded-for=${req.headers['x-forwarded-for']} | x-real-ip=${req.headers['x-real-ip']} | remoteAddress=${req.remoteAddress}`;
+          },
+          res(res) {
+            return {
+              statusCode: res.statusCode,
+            };
+          },
+        },
+      },
+    }),
     SentryModule.forRoot(),
   ],
   controllers: [AppController],

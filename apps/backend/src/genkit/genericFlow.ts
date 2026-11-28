@@ -1,7 +1,9 @@
 import { googleAI } from '@genkit-ai/google-genai';
-import { genkit, z, Document } from 'genkit';
+import { genkit, z, Document, modelRef } from 'genkit';
 import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'; // Direct import
+import { openAICompatible } from '@genkit-ai/compat-oai';
+import { contextCompression, fallback } from '@genkit-ai/middleware';
 
 interface RankedDocument {
   id: string;
@@ -13,15 +15,32 @@ interface RankedDocument {
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
-
-const model = process.env.AI_MODEL || 'gemini-3.8-flash';
-const targetModel = googleAI.model(model, {
-  temperature: 0.7,
+const models = process.env.AI_MODEL.split(',');
+const model = models[0] || 'openrouter/baidu/ernie-5.5-flash-preview:free';
+// const targetModel = googleAI.model(model, {
+//   temperature: 0.8,
+// });
+const targetModel = modelRef({
+  name: model,
+});
+const fallbackModel = modelRef({
+  name: models[1],
+});
+const fallbackModel2 = modelRef({
+  name: models[2],
+});
+const fallbackModel3 = modelRef({
+  name: models[3],
 });
 
 const ai = genkit({
   plugins: [
     googleAI({ apiKey: process.env.GEMINI_API_KEY }),
+    openAICompatible({
+      name: 'openrouter',
+      apiKey: process.env.OPENROUTER_API_KEY, // Required, but can be a placeholder for local servers
+      baseURL: 'https://openrouter.ai/api/v1', // Example for Ollama
+    }),
     //vertexAI({ location: 'global' }),
   ],
 });
@@ -105,14 +124,14 @@ const sqlRetriever = ai.defineRetriever(
     const sanitizedQuery = options.message.replace(/'/g, "''");
     const vectorQuery = `
        SELECT id, "documentId", content, metadata, "createdAt"
-       FROM "document_chunks"
+       FROM "docusensei"."document_chunks"
        WHERE "documentId" IN (${docIds})
        ORDER BY embedding <=> '${embeddingString}'::vector
        LIMIT ${options.k}
      `;
     const keywordQuery = `
        SELECT id, "documentId", content, metadata, "createdAt"
-       FROM "document_chunks"
+       FROM "docusensei"."document_chunks"
        WHERE "documentId" IN (${docIds})
          AND to_tsvector('english', content) @@ websearch_to_tsquery('english', '${sanitizedQuery}')
        ORDER BY ts_rank_cd(to_tsvector('english', content), websearch_to_tsquery('english', '${sanitizedQuery}')) DESC
@@ -217,74 +236,114 @@ export const genericFlow = ai.defineFlow(
       : [];
     sendChunk({ text: '', systemInfoMessage: { text: `Preparing Context.` } });
     sendChunk({ text: '', systemInfoMessage: { text: `Preparing Context..` } });
-    const { stream, response } = ai.generateStream({
-      model: targetModel,
-      prompt: `You are acting as helpful assistant. Use only the context provided to answer the question. If you dont know, do not make up an answer.
+    try {
+      const { stream, response } = ai.generateStream({
+        model: targetModel,
+        prompt: `You are acting as helpful assistant. Use only the context provided to answer the question. If you dont know, do not make up an answer.
       If no context provided, ask user to upload document and check again. In answer dont say based on provided context. Just give answer
       Question: ${input.message}`,
-      output: { schema: modelOutputSchema },
-      docs,
-      messages: messages.map((el) => {
-        return {
-          content: [{ text: el.content }],
-          role: (el.role === 'USER' ? 'user' : 'model') as 'user' | 'model',
-        };
-      }),
-    });
-    sendChunk({
-      text: '',
-      systemInfoMessage: { text: `Analyzing the documents` },
-    });
-    for await (const chunk of stream) {
-      if (chunk.output) sendChunk(chunk.output);
-    }
+        output: { schema: modelOutputSchema },
+        docs,
+        messages: messages
+          .filter((el) => !!el.content)
+          .map((el) => {
+            return {
+              content: [{ text: el.content }],
+              role: (el.role === 'USER' ? 'user' : 'model') as 'user' | 'model',
+            };
+          }),
+        use: [
+          fallback({
+            models: [fallbackModel, fallbackModel2, fallbackModel3],
+            statuses: [
+              'UNAVAILABLE',
+              'DEADLINE_EXCEEDED',
+              'RESOURCE_EXHAUSTED',
+              'ABORTED',
+              'INTERNAL',
+              'NOT_FOUND',
+              'UNIMPLEMENTED',
+            ],
+          }),
+          contextCompression({
+            maxInputTokens: 80000,
 
-    const { output, usage } = await response;
-    console.log(
-      'inputToken:',
-      usage.inputTokens,
-      'outputToken:',
-      usage.outputTokens,
-      input.inputMessageId,
-    );
-    if (!output) throw new Error('Failed to generate response');
-    if (!input.isEval) {
-      await prisma.message.update({
-        where: { id: input.inputMessageId },
-        data: {
-          tokenCount: usage.inputTokens,
-        },
+            deduplicateToolResponses: {
+              matchBy: 'name-and-input',
+            },
+
+            toolResponses: {
+              maxChars: 2000,
+              preserveRecent: 2,
+            },
+
+            summarize: {
+              model: fallbackModel,
+              preserveRecent: 6,
+            },
+
+            preserveOriginalMessages: true,
+          }),
+        ],
       });
-      await prisma.message.create({
-        data: {
-          chatId: input.chatId,
-          role: 'ASSISTANT',
-          content: output.text,
-          tokenCount: usage.outputTokens,
-        },
+
+      sendChunk({
+        text: '',
+        systemInfoMessage: { text: `Analyzing the documents` },
       });
+      for await (const chunk of stream) {
+        if (chunk.output) sendChunk(chunk.output);
+      }
+
+      const { output, usage } = await response;
+      console.log(
+        'inputToken:',
+        usage.inputTokens,
+        'outputToken:',
+        usage.outputTokens,
+        input.inputMessageId,
+      );
+      if (!output) throw new Error('Failed to generate response');
+      if (!input.isEval) {
+        await prisma.message.update({
+          where: { id: input.inputMessageId },
+          data: {
+            tokenCount: usage.inputTokens,
+          },
+        });
+        await prisma.message.create({
+          data: {
+            chatId: input.chatId,
+            role: 'ASSISTANT',
+            content: output.text,
+            tokenCount: usage.outputTokens,
+          },
+        });
+      }
+      console.log(
+        'Time Elapsed:' +
+          ((new Date().getTime() - startTime) / 1000).toFixed(2) +
+          's',
+      );
+      return {
+        text: output.text,
+        systemInfoMessage: {
+          meta: {
+            inputToken: usage.inputTokens,
+            outputToken: usage.outputTokens,
+            elapsed: new Date().getTime() - startTime,
+          },
+        },
+        ...(input.isEval
+          ? {
+              retrievedDocs: Array.isArray(docs)
+                ? docs.map((d: any) => d.text)
+                : (docs as any).documents?.map((d: any) => d.text) || [],
+            }
+          : {}),
+      };
+    } catch (e) {
+      console.error(e);
     }
-    console.log(
-      'Time Elapsed:' +
-        ((new Date().getTime() - startTime) / 1000).toFixed(2) +
-        's',
-    );
-    return {
-      text: output.text,
-      systemInfoMessage: {
-        meta: {
-          inputToken: usage.inputTokens,
-          outputToken: usage.outputTokens,
-          elapsed: new Date().getTime() - startTime,
-        },
-      },
-      ...(input.isEval
-        ? {
-            retrievedDocs: Array.isArray(docs)
-              ? docs.map((d: any) => d.text)
-              : (docs as any).documents?.map((d: any) => d.text) || [],
-          }
-        : {}),
-    };
   },
 );

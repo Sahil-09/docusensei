@@ -5,6 +5,7 @@ import { googleAI, vertexAI } from '@genkit-ai/google-genai';
 import { PDFParse } from 'pdf-parse';
 import { PrismaClient } from '../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'; // Direct import
+import { openAICompatible, } from '@genkit-ai/compat-oai';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -31,12 +32,19 @@ const targetModel = vertexAI.model(model, {
   thinkingConfig: { thinkingLevel: 'LOW' },
 });
 
+
 const ai = genkit({
   plugins: [
     googleAI({ apiKey: process.env.GEMINI_API_KEY }),
+    openAICompatible({
+      name: 'openrouter',
+      apiKey: process.env.OPENROUTER_API_KEY, // Required, but can be a placeholder for local servers
+      baseURL: 'https://openrouter.ai/api/v1', // Example for Ollama
+    }),
     //vertexAI({ location: 'global' }),
   ],
 });
+
 const BufferSchema = z.instanceof(Buffer);
 
 export const indexData = ai.defineFlow(
@@ -79,24 +87,29 @@ export const indexData = ai.defineFlow(
         console.log(
           `Embedded: ${i}/${documents.length} for document: ${input.docId}`,
         );
-
-        const embedded = await ai.embed({
-          embedder: googleAI.embedder('gemini-embedding-001'),
-          content: el.text,
-          options: {
-            outputDimensionality: 384, // Reduce from 768 to 384                                                                                                                                                                                                         MCP
-          },
-        });
+        if (!el.text) {
+          continue;
+        }
+          const embedded = await ai.embed({
+            embedder: googleAI.embedder(
+              process.env.EMBEDDED_MODEL as
+                | 'gemini-embedding-2-preview'
+                | 'gemini-embedding-2'
+                | 'gemini-embedding-001',
+            ),
+            content: el.text,
+            options: {
+              outputDimensionality: 384, // Reduce from 768 to 384                                                                                                                                                                                                         MCP
+            },
+          });
         const embeddingArray = embedded[0].embedding;
         const embeddingString = `[${embeddingArray
-          .map((v) => {
-            const num = Number(v);
-            return isFinite(num) ? num : 0;
-          })
+          .map((v) => (Number.isFinite(Number(v)) ? Number(v) : 0))
           .join(',')}]`;
 
-        const insertQuery = `INSERT INTO document_chunks (documentId, embedding, content) VALUES (${input.docId}, '${embeddingString}'::vector, '${el.text}')`;
-        await prisma.$executeRawUnsafe(insertQuery);
+        await prisma.$executeRaw`
+          INSERT INTO "docusensei"."document_chunks" ("id", "documentId", "embedding", "content")
+          VALUES (gen_random_uuid()::text, ${input.docId}, ${embeddingString}::vector, ${documents[i].text})`;
         i++;
       }
       const updateDoc = await prisma.document.update({
@@ -117,11 +130,7 @@ export const indexData = ai.defineFlow(
           processingStatus: 'FAILED',
         },
       });
-      return {
-        success: false,
-        documentsIndexed: 0,
-        error: err instanceof Error ? err.message : String(err),
-      };
+      throw Error(err.message);
     }
   },
 );

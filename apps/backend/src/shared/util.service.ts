@@ -1,6 +1,6 @@
 import { PDFParse } from 'pdf-parse';
 import { Injectable } from '@nestjs/common';
-import { genkit } from 'genkit';
+import { genkit, modelRef } from 'genkit';
 import { googleAI, vertexAI } from '@genkit-ai/google-genai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -10,6 +10,8 @@ import {
   answerRelevanceEvaluator,
   contextRelevanceEvaluator,
 } from '../genkit/evaluators';
+import { openAICompatible } from '@genkit-ai/compat-oai';
+import { contextCompression, fallback } from '@genkit-ai/middleware';
 
 @Injectable()
 export class UtilService {
@@ -36,14 +38,38 @@ export class UtilService {
   }
 
   async generateFromAi(text: string) {
-    const ai = genkit({
-      plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
-      model: googleAI.model('gemini-3.5-flash'),
+    const fallbackModel = modelRef({
+      name: process.env.AI_MODEL.split(',')[0] || 'openrouter/nvidia/nemotron-3-ultra-550b-a55b:free',
     });
-    const response = await ai.generate(
-      `Prepare a short title for the conversation, based on question user have asked, no any option just keep it short and direct title
+    const ai = genkit({
+      plugins: [
+        googleAI({ apiKey: process.env.GEMINI_API_KEY }),
+        openAICompatible({
+          name: 'openrouter',
+          apiKey: process.env.OPENROUTER_API_KEY, // Required, but can be a placeholder for local servers
+          baseURL: 'https://openrouter.ai/api/v1', // Example for Ollama
+        }),
+      ],
+    });
+    const response = await ai.generate({
+      model: googleAI.model('gemini-3.5-flash'),
+      prompt: `Prepare a short title for the conversation, based on question user have asked, no any option just keep it short and direct title
       Question:${text}`,
-    );
+      use: [
+        fallback({
+          models: [fallbackModel],
+          statuses: [
+            'UNAVAILABLE',
+            'DEADLINE_EXCEEDED',
+            'RESOURCE_EXHAUSTED',
+            'ABORTED',
+            'INTERNAL',
+            'NOT_FOUND',
+            'UNIMPLEMENTED',
+          ],
+        })
+      ],
+    });
     return response.text;
   }
 
@@ -57,7 +83,7 @@ export class UtilService {
 
   async runEvalSuite() {
     const testChatId = 'cmrqj6a5j00007wek69e0on4c'; // Chat ID with uploaded document reference
-    const datasetPath = path.join(__dirname,'assets' , 'datasets', 'ddia.json');
+    const datasetPath = path.join(__dirname, 'assets', 'datasets', 'ddia.json');
     if (!fs.existsSync(datasetPath)) {
       console.error(
         `Dataset not found at ${datasetPath}. Please ensure ddia.json is present.`,
@@ -165,6 +191,6 @@ export class UtilService {
       `📊 Context Relevance: ${(report.averageMetrics.contextRelevance * 100).toFixed(1)}%`,
     );
     // console.log(`\nDetailed report written to: ${reportPath}`);
-    return report
+    return report;
   }
 }

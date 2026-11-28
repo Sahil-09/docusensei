@@ -63,7 +63,7 @@ export class ChatsService {
       .join(',')}]`;
 
     const docs = (await this.prisma.$queryRawUnsafe(
-      `SELECT id, "documentId", content, metadata, "createdAt" FROM "document_chunks" ORDER BY embedding <=> '${embeddingString}'::vector LIMIT 5`,
+      `SELECT id, "documentId", content, metadata, "createdAt" FROM "docusensei"."document_chunks" ORDER BY embedding <=> '${embeddingString}'::vector LIMIT 5`,
     )) as DocumentChunk[];
 
     this.logger.debug(
@@ -98,6 +98,7 @@ export class ChatsService {
           },
         },
         documents: {
+          where: { processingStatus: 'COMPLETED' },
           select: {
             fileName: true,
           },
@@ -106,7 +107,7 @@ export class ChatsService {
     });
   }
 
-  async update(chatId: string, updateChatDto: UpdateChatDto, files, user) {
+  async update(chatId: string, updateChatDto: UpdateChatDto, files:File[], user) {
     const userData = await this.prisma.user.findUnique({
       where: { clerkId: user.id },
     });
@@ -121,7 +122,9 @@ export class ChatsService {
     this.logger.log(
       `Created initial message with ID: ${createMessage.id} for chat: ${chatId}`,
     );
-    await this.updatedDoc(chatId, userData.id, files);
+    if (files.length) {
+      await this.updatedDoc(chatId, userData.id, files);
+    }
     return {
       message: 'Updated',
       chatId: chatId,
